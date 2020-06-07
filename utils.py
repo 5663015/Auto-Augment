@@ -99,9 +99,6 @@ def data_transforms_cifar(args):
     return train_transform, valid_transform
 
 
-
-
-
 def get_variable(inputs, cuda=False, **kwargs):
     if type(inputs) in [list, np.ndarray]:
         inputs = torch.Tensor(inputs)
@@ -121,4 +118,37 @@ class keydefaultdict(defaultdict):
             return ret
 
 
+class PrefetchedWrapper(object):
+    def prefetched_loader(loader):
+        stream = torch.cuda.Stream()
+        first = True
 
+        for next_input, next_target in loader:
+            with torch.cuda.stream(stream):
+                next_input = next_input.cuda(async=True)
+                next_target = next_target.cuda(async=True)
+                next_input = next_input.float()
+
+            if not first:
+                yield input, target
+            else:
+                first = False
+
+            torch.cuda.current_stream().wait_stream(stream)
+            input = next_input
+            target = next_target
+
+        yield input, target
+
+    def __init__(self, dataloader):
+        self.dataloader = dataloader
+        self.epoch = 0
+
+    def __iter__(self):
+        if (self.dataloader.sampler is not None and
+            isinstance(self.dataloader.sampler,
+                       torch.utils.data.distributed.DistributedSampler)):
+
+            self.dataloader.sampler.set_epoch(self.epoch)
+        self.epoch += 1
+        return PrefetchedWrapper.prefetched_loader(self.dataloader)

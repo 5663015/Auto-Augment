@@ -34,7 +34,8 @@ def get_data_loader(args, policy_provider):
 	valset = dset.CIFAR10(root=args.data_dir, train=False, download=False, transform=valid_transform)
 	valid_queue = torch.utils.data.DataLoader(valset, batch_size=args.batch_size,
 	                                          shuffle=False, pin_memory=True, num_workers=8)
-	return train_queue, valid_queue, train_transform
+	
+	return PrefetchedWrapper(train_queue), PrefetchedWrapper(valid_queue), train_transform
 
 
 def validate(val_data, device, model):
@@ -88,7 +89,7 @@ def train_cnn(args, model, device, train_quene, val_quene):
 			train_loss += loss.item()
 			
 			print('\rEpoch: {}, step: {}/{}, train loss: {:.6}, top1: {:.4}, top5: {:.4}'.format(
-					e+1, step, len(train_quene), loss, top1.avg, top5.avg), end='')
+					e + 1, step + 1, len(train_quene), loss, top1.avg, top5.avg), end='')
 		val_acc, _, _ = validate(val_quene, device, model)
 		if val_acc > best_val_acc:
 			best_val_acc= val_acc
@@ -133,6 +134,10 @@ def main(args):
 		device = torch.device("cuda")
 	else:
 		device = torch.device("cpu")
+	cudnn.benchmark = True
+	torch.manual_seed(args.seed)
+	cudnn.enabled = True
+	torch.cuda.manual_seed(args.seed)
 	
 	# controller
 	controller = Controller(args).to(device)
