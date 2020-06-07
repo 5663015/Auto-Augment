@@ -8,7 +8,7 @@ def get_args():
 	parser.add_argument('--layers', type=int, default=40)
 	parser.add_argument('--widening_factor', type=int, default=2)
 	parser.add_argument('--dropout', type=float, default=0.3)
-	parser.add_argument('--cnn_train_epochs', type=int, default=20)    # 120
+	parser.add_argument('--cnn_train_epochs', type=int, default=120)    # 120
 	parser.add_argument('--cnn_lr', type=float, default=0.025)
 	parser.add_argument('--cnn_weight_decay', type=float, default=3e-4)
 	
@@ -39,7 +39,7 @@ def get_args():
 	parser.add_argument('--cuda', type=bool, default=True)
 	parser.add_argument('--gpu', type=int, default=0)
 	parser.add_argument('--mode', type=str, default='train')
-	parser.add_argument('--search_epochs', type=int, default=60)  # 1500
+	parser.add_argument('--search_epochs', type=int, default=1500)  # 1500
 	
 	arguments = parser.parse_args()
 	print(arguments)
