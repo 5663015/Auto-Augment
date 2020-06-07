@@ -88,8 +88,8 @@ def train_cnn(args, model, device, train_quene, len_train, val_quene, len_val):
 			optimizer.step()
 			train_loss += loss.item()
 			
-			print('\rEpoch: {}, step: {}/{}, train loss: {:.6}, top1: {:.4}, top5: {:.4}'.format(
-					e + 1, step + 1, len_train, loss, top1.avg, top5.avg), end='')
+			print('\rEpoch: {}/{}, step: {}/{}, train loss: {:.6}, top1: {:.4}, top5: {:.4}'.format(
+					e + 1, args.cnn_train_epochs, step + 1, len_train, loss, top1.avg, top5.avg), end='')
 		val_acc, _, _ = validate(val_quene, len_val, device, model)
 		if val_acc > best_val_acc:
 			best_val_acc= val_acc
