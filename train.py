@@ -35,10 +35,10 @@ def get_data_loader(args, policy_provider):
 	valid_queue = torch.utils.data.DataLoader(valset, batch_size=args.batch_size,
 	                                          shuffle=False, pin_memory=True, num_workers=8)
 	
-	return PrefetchedWrapper(train_queue), PrefetchedWrapper(valid_queue), train_transform
+	return PrefetchedWrapper(train_queue),len(train_queue), PrefetchedWrapper(valid_queue), len(valid_queue), train_transform
 
 
-def validate(val_data, device, model):
+def validate(val_data, len_val, device, model):
 	model.eval()
 	val_loss = 0.0
 	val_top1 = AvgrageMeter()
@@ -59,7 +59,7 @@ def validate(val_data, device, model):
 	return val_top1.avg, val_top5.avg, val_loss / (step + 1)
 
 
-def train_cnn(args, model, device, train_quene, val_quene):
+def train_cnn(args, model, device, train_quene, len_train, val_quene, len_val):
 	optimizer = torch.optim.SGD(model.parameters(), lr=args.cnn_lr, momentum=0.9, weight_decay=args.cnn_weight_decay)
 	scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, args.cnn_train_epochs, eta_min=1e-8)
 	best_val_acc = 0.
@@ -89,8 +89,8 @@ def train_cnn(args, model, device, train_quene, val_quene):
 			train_loss += loss.item()
 			
 			print('\rEpoch: {}, step: {}/{}, train loss: {:.6}, top1: {:.4}, top5: {:.4}'.format(
-					e + 1, step + 1, len(train_quene), loss, top1.avg, top5.avg), end='')
-		val_acc, _, _ = validate(val_quene, device, model)
+					e + 1, step + 1, len_train, loss, top1.avg, top5.avg), end='')
+		val_acc, _, _ = validate(val_quene, len_val, device, model)
 		if val_acc > best_val_acc:
 			best_val_acc= val_acc
 		t2 = time.time()
@@ -161,7 +161,7 @@ def main(args):
 			print(p)
 		
 		# get dataset
-		train_queue, valid_queue, train_transform = get_data_loader(args, policy_provider)
+		train_queue, len_train, valid_queue, len_val, train_transform = get_data_loader(args, policy_provider)
 		
 		# train cnn
 		print('*' * 30)
@@ -169,7 +169,7 @@ def main(args):
 		print('*' * 30)
 		model = WideResNet(depth=args.layers, num_classes=10, widen_factor=args.widening_factor,
 		                   dropRate=args.dropout).to(device)
-		val_acc = train_cnn(args, model, device, train_queue, valid_queue)
+		val_acc = train_cnn(args, model, device, train_queue, len_train, valid_queue, len_val)
 		
 		# train controller
 		print('*' * 30)
